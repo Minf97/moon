@@ -1,15 +1,33 @@
+"use client";
+import AgentView from "@/components/AgentView";
+import LogPanel from "@/components/LogPanel";
+import { useAgentStore } from "@/store/agents";
+import { useEffect } from "react";
+
 export default function Home() {
+  const { agents, initAgents, cleanup, startGame } = useAgentStore();
+
+  useEffect(() => {
+    initAgents();
+
+    return () => {
+      // 清除定时器
+      cleanup();
+    };
+  }, []);
+
   return (
-    <div
-      id="main-app"
-      className="w-screen h-screen p-4 flex gap-4 relative"
-    >
+    <div id="main-app" className="w-screen h-screen p-4 flex gap-4 relative">
       {/* Main Map Area */}
       <div className="w-3/4 h-full flex flex-col gap-4">
         <div className="flex-grow relative">
           <div id="map" className="map"></div>
           <div id="controls" className="absolute top-2 left-2 flex gap-2">
-            <button id="start-sim-btn" className="control-button">
+            <button
+              id="start-sim-btn"
+              className="control-button"
+              onClick={startGame}
+            >
               🚀 开始模拟
             </button>
             <button id="event-trigger-btn" className="control-button hidden">
@@ -30,17 +48,11 @@ export default function Home() {
       </div>
 
       {/* Log Panel */}
-      <div
-        id="log-panel-container"
-        className="w-1/4 h-full flex flex-col bg-white rounded-lg shadow-md"
-      >
-        <h2 className="text-lg font-bold p-4 border-b border-gray-200">
-          系统日志与对话
-        </h2>
-        <div id="log-panel" className="flex-grow overflow-y-auto p-2">
-          {/* Logs will be appended here */}
-        </div>
-      </div>
+      <LogPanel />
+
+      {agents.map((agent) => (
+        <AgentView key={agent.id} agent={agent} />
+      ))}
 
       {/* Agent Details Sidebar */}
       <div
