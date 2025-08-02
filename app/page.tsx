@@ -2,10 +2,12 @@
 import AgentView from "@/components/AgentView";
 import LogPanel from "@/components/LogPanel";
 import { useAgentStore } from "@/store/agents";
+import { useConfigStore } from "@/store/config";
 import { useEffect } from "react";
 
 export default function Home() {
-  const { agents, initAgents, cleanup, startGame } = useAgentStore();
+  const { agents, initAgents, cleanup } = useAgentStore();
+  const { gameStart, startGame } = useConfigStore();
 
   useEffect(() => {
     initAgents();
@@ -25,12 +27,16 @@ export default function Home() {
           <div id="controls" className="absolute top-2 left-2 flex gap-2">
             <button
               id="start-sim-btn"
-              className="control-button"
+              className={`control-button ${gameStart ? "hidden" : ""}`}
               onClick={startGame}
             >
               🚀 开始模拟
             </button>
-            <button id="event-trigger-btn" className="control-button hidden">
+            <button
+              id="event-trigger-btn"
+              className={`control-button ${gameStart ? "" : "hidden"}`}
+              // onClick={() => setWorldEvent(null)}
+            >
               ✨ 触发世界事件
             </button>
           </div>
