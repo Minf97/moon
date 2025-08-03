@@ -6,10 +6,6 @@ export async function callMoonshot(prompt: string) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const apiKey = process.env.NEXT_PUBLIC_API_KEY || "";
 
-  console.log("modelName", modelName);
-  console.log("baseUrl", baseUrl);
-  console.log("apiKey", apiKey);
-
   // 检查用户是否已通过邀请码验证
   // @ts-ignore
   //   if (
