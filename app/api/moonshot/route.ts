@@ -3,9 +3,9 @@
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
-  const modelName = process.env.NEXT_PUBLIC_MODEL_NAME || "";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-  const apiKey = process.env.NEXT_PUBLIC_API_KEY || "";
+  const modelName = process.env.MODEL_NAME || "";
+  const baseUrl = process.env.BASE_URL || "";
+  const apiKey = process.env.API_KEY || "";
 
   const payload = {
     model: modelName,
