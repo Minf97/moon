@@ -14,6 +14,8 @@ export interface Agent {
   motivation: { action: string; target?: string };
   /** 最后一条消息 */
   lastMessage: string;
+  /** 最后一条消息时间 */
+  lastMessageTime: number;
   /** 记忆 */
   memory: string[];
   /** 头像 */
@@ -60,4 +62,5 @@ export type AgentStore = {
   generateDialogue: (conversation: Conversation) => Promise<any>;
   setWandering: (agentId: string, reason: string) => void;
   setFinding: (agentId: string, targetId: string, reason: string) => void;
+  displayBubble: (agentId: string, message: string) => void;
 };

@@ -48,6 +48,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         avatar: AVATARS[name as keyof typeof AVATARS],
         background: AGENT_BACKGROUNDS[name as keyof typeof AGENT_BACKGROUNDS],
         conversationId: "",
+        lastMessageTime: 0,
       };
     });
 
@@ -297,6 +298,20 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     set((state: any) => ({
       agents: state.agents.map((a: Agent) =>
         a.id === agentId ? { ...a, ...newStatus } : a
+      ),
+    }));
+  },
+
+  displayBubble: (agentId: string, message: string) => {
+    const { agents } = get();
+    const agent = agents.find((a) => a.id === agentId);
+    if (!agent) return;
+
+    set((state: any) => ({
+      agents: state.agents.map((a: Agent) =>
+        a.id === agentId
+          ? { ...a, lastMessage: message, lastMessageTime: Date.now() }
+          : a
       ),
     }));
   },

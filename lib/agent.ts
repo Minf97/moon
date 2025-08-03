@@ -85,6 +85,7 @@ export async function shouldAgentsTalk(agentA: Agent, agentB: Agent) {
   };
 }
 
+
 // 假数据生成器
 export function getRandomPosition() {
   return {
@@ -93,6 +94,9 @@ export function getRandomPosition() {
   };
 }
 
+/**
+ * 计算两个 agent 之间的距离
+ */
 export function getDistance(agent1: Agent, agent2: Agent) {
   return Math.sqrt(
     Math.pow(agent1.x - agent2.x, 2) + Math.pow(agent1.y - agent2.y, 2)

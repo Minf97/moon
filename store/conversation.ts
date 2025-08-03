@@ -74,7 +74,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   handleConversationTurn: async (conversationId: string) => {
     const { conversations } = get();
     const { logMessage } = useSidebarLogStore.getState();
-    const { generateDialogue } = useAgentStore.getState();
+    const { generateDialogue, displayBubble } = useAgentStore.getState();
     const conversation = conversations[conversationId];
     if (!conversation) return;
 
@@ -98,8 +98,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     // 检查对话是否还在
     if (!get().conversations[conversationId]) return;
 
-    // TODO: 展示气泡
-    // get().onBubble?.(speaker.id, response.dialogue);
+    displayBubble(speaker.id, response.dialogue);
     logMessage(
       `<strong>${speaker.name}:</strong> ${response.dialogue}`,
       "dialogue"
