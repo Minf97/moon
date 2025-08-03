@@ -2,16 +2,18 @@
 // 渲染单个 Agent
 import React, { useEffect, useState } from "react";
 import { Agent } from "@/types";
+import { useDetailbarStore } from "@/store/detailbar";
 
 interface Props {
   agent: Agent;
-  onClick: (agent: Agent) => void;
 }
 
-export default function AgentView({ agent, onClick }: Props) {
+export default function AgentView({ agent }: Props) {
   const { lastMessageTime, lastMessage, avatar, name, state, x, y, id } = agent;
   // 5秒内才渲染
   const [isShow, setIsShow] = useState(false);
+
+  const { setSelectedAgent } = useDetailbarStore();
 
   useEffect(() => {
     if (lastMessageTime > 0 && Date.now() - lastMessageTime < 5000) {
@@ -30,7 +32,7 @@ export default function AgentView({ agent, onClick }: Props) {
         transform: `translate(${x}px, ${y}px)`,
       }}
       onClick={() => {
-        onClick(agent);
+        setSelectedAgent(agent);
       }}
     >
       <div className="agent-avatar w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
