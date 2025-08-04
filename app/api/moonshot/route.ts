@@ -15,8 +15,12 @@ export async function POST(req: Request) {
         content: prompt + "\n\n请确保你的回复是有效的JSON格式。",
       },
     ],
+    thinking: {
+        "type": "enabled", 
+    },
+    stream: false,
     temperature: 0.7,
-    max_tokens: 1000,
+    max_tokens: 4096,
   };
 
   const response = await fetch(baseUrl, {

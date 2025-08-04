@@ -30,7 +30,7 @@ export interface Agent {
   conversationId: string;
 }
 
-export type AgentState = "idle" | "wandering" | "talking" | "thinking" | "finding";
+export type AgentState = "wandering" | "talking" | "thinking" | "finding";
 
 export type ConversationTurn = {
   turn: number;

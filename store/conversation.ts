@@ -56,8 +56,8 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
 
     const agent1 = agents.find((a) => a.id === id1);
     const agent2 = agents.find((a) => a.id === id2);
-    if (agent1) agent1.state = "idle";
-    if (agent2) agent2.state = "idle";
+    if (agent1) agent1.state = "wandering";
+    if (agent2) agent2.state = "wandering";
 
     set((state: any) => {
       const updated = { ...state.conversations };
