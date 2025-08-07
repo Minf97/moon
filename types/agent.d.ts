@@ -63,4 +63,5 @@ export type AgentStore = {
   setWandering: (agentId: string, reason: string) => void;
   setFinding: (agentId: string, targetId: string, reason: string) => void;
   displayBubble: (agentId: string, message: string) => void;
+  updateAgentMemory: (agentId: string, memory: string) => void;
 };

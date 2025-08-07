@@ -180,7 +180,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const agent = agents.find((a) => a.id === conversation.turn);
 
     if (!agent) return;
-    agent.state = "thinking";
 
     const otherAgent = agents.find(
       (a) =>
@@ -226,14 +225,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     `;
 
     const response = await callMoonshot(prompt);
-
-    if (agent.state === "thinking") agent.state = "talking";
-
-    set((state: any) => ({
-      agents: state.agents.map((a: Agent) =>
-        a.id === agent.id ? { ...a, state: "talking" } : a
-      ),
-    }));
 
     if (response.error) {
       return {
@@ -311,6 +302,19 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       agents: state.agents.map((a: Agent) =>
         a.id === agentId
           ? { ...a, lastMessage: message, lastMessageTime: Date.now() }
+          : a
+      ),
+    }));
+  },
+
+  /**
+   * 更新agent的记忆
+   */
+  updateAgentMemory: (agentId: string, memory: string) => {
+    set((state: any) => ({
+      agents: state.agents.map((a: Agent) =>
+        a.id === agentId
+          ? { ...a, memory: [...a.memory, memory] }
           : a
       ),
     }));

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       },
     ],
     thinking: {
-        "type": "enabled", 
+        "type": "disabled", 
     },
     stream: false,
     temperature: 0.7,
