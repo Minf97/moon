@@ -126,7 +126,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
    */
   checkEncounters: async () => {
     const agents = get().agents;
-    const { logMessage } = useSidebarLogStore.getState();
+    const { logMessage, createEncounterCard, addStepToCard, updateCardStatus } = useSidebarLogStore.getState();
     const { startConversation } = useConversationStore.getState();
 
     for (let i = 0; i < agents.length; i++) {
@@ -137,32 +137,73 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         // ✅ 2. 是否冷却完成（冷却判断）
         if (!detectEncounter(agentA, agentB)) continue;
 
-        agentA.state = "thinking";
-        agentB.state = "thinking";
+        // 创建相遇卡片
+        const cardId = createEncounterCard(
+          { id: agentA.id, name: agentA.name },
+          { id: agentB.id, name: agentB.name }
+        );
+
+        // 设置思考状态
+        set((state: any) => ({
+          agents: state.agents.map((a: Agent) =>
+            a.id === agentA.id || a.id === agentB.id
+              ? { ...a, state: "thinking" }
+              : a
+          )
+        }));
+
+        // 重新获取更新后的agents
+        const updatedAgents = get().agents;
+        const updatedAgentA = updatedAgents.find(a => a.id === agentA.id);
+        const updatedAgentB = updatedAgents.find(a => a.id === agentB.id);
+        if (!updatedAgentA || !updatedAgentB) continue;
 
         // ✅ 3. 决定是否想聊（内心OS、动机推理）
         const { decisionA, decisionB, shouldTalk } = await shouldAgentsTalk(
-          agentA,
-          agentB
+          updatedAgentA,
+          updatedAgentB
         );
 
-        logMessage(
-          `- ${agentA.name} 决定: ${decisionA.should_initiate}. 原因: ${decisionA.reason}`
-        );
-        logMessage(
-          `- ${agentB.name} 决定: ${decisionB.should_initiate}. 原因: ${decisionB.reason}`
-        );
+        // 添加决策步骤到卡片
+        addStepToCard(cardId, {
+          type: "decision",
+          agentName: updatedAgentA.name,
+          message: `${decisionA.should_initiate ? '想要对话' : '不想对话'}：${decisionA.reason}`,
+          timestamp: Date.now()
+        });
+        
+        addStepToCard(cardId, {
+          type: "decision", 
+          agentName: updatedAgentB.name,
+          message: `${decisionB.should_initiate ? '想要对话' : '不想对话'}：${decisionB.reason}`,
+          timestamp: Date.now()
+        });
+
         // ✅ 4. 启动对话（进入会话逻辑）
         if (shouldTalk) {
-          logMessage(
-            `💬 对话开始! ${agentA.name} 与 ${agentB.name}.`,
-            "dialogue"
-          );
-          startConversation(agentA, agentB);
+          addStepToCard(cardId, {
+            type: "conversation_start",
+            message: "对话开始！",
+            timestamp: Date.now()
+          });
+          updateCardStatus(cardId, "talking");
+          startConversation(updatedAgentA, updatedAgentB, cardId);
         } else {
-          logMessage(`❌ 对话未发起，双方未达成共识。`);
-          agentA.state = "wandering";
-          agentB.state = "wandering";
+          addStepToCard(cardId, {
+            type: "conversation_end",
+            message: "对话未发起，双方未达成共识",
+            timestamp: Date.now()
+          });
+          updateCardStatus(cardId, "completed");
+          
+          // 设置为闲逛状态
+          set((state: any) => ({
+            agents: state.agents.map((a: Agent) =>
+              a.id === updatedAgentA.id || a.id === updatedAgentB.id
+                ? { ...a, state: "wandering" }
+                : a
+            )
+          }));
         }
       }
     }
@@ -214,9 +255,20 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     对话历史:
     ${history || "（这是对话的第一句话）"}
 
-    你正在一个有意思的社交派对
-    你正在和${otherAgent.name}聊天
-    你可以和他讨论一些开放性的内容，不要聊的太无聊，你们是好朋友，但不是同事，你可以和他聊一些你认为有趣的内容，注意，你没有任何行动能力，你不能发起任何行动和实际操作，你只能和对方讨论
+    你正在一个科技产品相关的社交派对上。
+    你正在和${otherAgent.name}聊天，你们可以：
+    - 讨论现有的科技产品和它们的优缺点
+    - 分享对产品设计和用户体验的看法  
+    - 聊聊市面上的应用、网站、硬件设备等
+    - 交流创业想法和商业模式
+    - 分享使用某些产品的体验和感受
+    
+    重要约束：
+    - 保持话题现实可行，不要讨论科幻或不切实际的概念
+    - 专注于当前已存在或近期可能实现的技术
+    - 不要提及你无法实际执行的行动
+    - 避免过于天马行空的想象，保持务实的态度
+    - 可以有创意，但要基于现实的技术基础
 
     现在轮到你发言。请根据你的背景、记忆和当前对话，生成你的下一句话，并决定下一步行动。
     行动选项: "continue_talking", "leave_and_wander", "leave_and_find"。

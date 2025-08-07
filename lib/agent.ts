@@ -63,10 +63,6 @@ export function detectEncounter(agentA: Agent, agentB: Agent) {
   ) {
     agentA.lastEncounterCheck[agentB.id] = now;
     agentB.lastEncounterCheck[agentA.id] = now;
-    logMessage(
-        `🤝 ${agentA.name} 和 ${agentB.name} 相遇了...`,
-        "system"
-    );
     return true;
   }
 

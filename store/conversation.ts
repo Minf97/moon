@@ -6,7 +6,7 @@ import { callMoonshot } from "@/lib/llm";
 
 type ConversationStore = {
   conversations: Record<string, Conversation>;
-  startConversation: (agentA: Agent, agentB: Agent) => void;
+  startConversation: (agentA: Agent, agentB: Agent, cardId?: string) => void;
   endConversation: (conversationId: string, reason: string, speakerAction?: {action: string, target_name?: string}, speakerId?: string) => void;
   handleConversationTurn: (conversationId: string) => Promise<void>;
   generateMemoryForAgents: (agent1: Agent, agent2: Agent, history: any[]) => Promise<void>;
@@ -18,7 +18,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   /**
    * 启动对话
    */
-  startConversation: (agentA: Agent, agentB: Agent) => {
+  startConversation: (agentA: Agent, agentB: Agent, cardId?: string) => {
     const conversationId = `conv-${Date.now()}`;
 
     set((state: any) => ({
@@ -31,17 +31,26 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
           turn: agentA.id,
           turnCount: 0,
           createdAt: new Date().toISOString(),
+          cardId, // 保存卡片ID
         },
       },
     }));
 
-    // 设置 agent 状态
-    agentA.state = "talking";
-    agentB.state = "talking";
-    agentA.conversationId = conversationId;
-    agentB.conversationId = conversationId;
-    agentA.target = { x: agentA.x, y: agentA.y };
-    agentB.target = { x: agentB.x, y: agentB.y };
+    // 通过 agents store 正确设置状态
+    const { agents } = useAgentStore.getState();
+    useAgentStore.setState((state: any) => ({
+      agents: state.agents.map((agent: Agent) => {
+        if (agent.id === agentA.id || agent.id === agentB.id) {
+          return {
+            ...agent,
+            state: "talking",
+            conversationId: conversationId,
+            target: { x: agent.x, y: agent.y }
+          };
+        }
+        return agent;
+      })
+    }));
 
     get().handleConversationTurn(conversationId);
   },
@@ -52,20 +61,28 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   endConversation: async (conversationId: string, reason: string, speakerAction?: {action: string, target_name?: string}, speakerId?: string) => {
     const conv = get().conversations[conversationId];
     if (!conv) return;
-    const { logMessage } = useSidebarLogStore.getState();
+    const { logMessage, addStepToCard, updateCardStatus } = useSidebarLogStore.getState();
     const { agents, updateAgentMemory, setWandering, setFinding } = useAgentStore.getState();
     const [id1, id2] = conv.participants;
 
     const agent1 = agents.find((a) => a.id === id1);
     const agent2 = agents.find((a) => a.id === id2);
     
-    // 设置两个人的状态为wandering
-    if (agent1) agent1.state = "wandering";
-    if (agent2) agent2.state = "wandering";
-
     // 为两个参与者生成记忆
     if (agent1 && agent2 && conv.history.length > 0) {
       await get().generateMemoryForAgents(agent1, agent2, conv.history);
+    }
+
+    // 更新卡片状态
+    if (conv.cardId) {
+      addStepToCard(conv.cardId, {
+        type: "conversation_end",
+        message: `对话结束：${reason}`,
+        timestamp: Date.now()
+      });
+      updateCardStatus(conv.cardId, "completed");
+    } else {
+      logMessage(`🛑 对话结束 (${reason})`, "dialogue");
     }
 
     // 删除对话记录
@@ -74,8 +91,6 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       delete updated[conversationId];
       return { conversations: updated };
     });
-
-    logMessage(`🛑 对话结束 (${reason})`, "dialogue");
 
     // 处理发起结束对话的人的后续行动
     if (speakerAction && speakerId) {
@@ -90,13 +105,29 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
           setWandering(speakerId, "决定结束对话");
         }
       }
+      
+      // 另一个人自动设置为闲逛状态
+      const otherId = conv.participants.find(id => id !== speakerId);
+      if (otherId) {
+        setWandering(otherId, "对话被对方结束");
+      }
+    } else {
+      // 如果没有指定结束发起者（比如达到最大轮次），两个人都设置为闲逛
+      conv.participants.forEach(participantId => {
+        setWandering(participantId, reason);
+      });
     }
-
-    // 另一个人自动设置为闲逛状态
-    const otherId = conv.participants.find(id => id !== speakerId);
-    if (otherId) {
-      setWandering(otherId, "对话被对方结束");
-    }
+    
+    // 强制同步更新 agents 状态
+    const { agents: updatedAgents } = useAgentStore.getState();
+    conv.participants.forEach(participantId => {
+      const agent = updatedAgents.find(a => a.id === participantId);
+      if (agent && agent.state === "talking") {
+        console.warn(`强制更新状态：${agent.name} 从 talking 改为 wandering`);
+        agent.state = "wandering";
+        agent.conversationId = "";
+      }
+    });
   },
 
   /**
@@ -136,10 +167,23 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     if (!get().conversations[conversationId]) return;
 
     displayBubble(speaker.id, response.dialogue);
-    logMessage(
-      `${speaker.name}: ${response.dialogue}`,
-      "dialogue"
-    );
+    
+    // 更新卡片中的对话内容
+    if (conversation.cardId) {
+      const { addStepToCard } = useSidebarLogStore.getState();
+      addStepToCard(conversation.cardId, {
+        type: "dialogue",
+        agentName: speaker.name,
+        message: response.dialogue,
+        timestamp: Date.now()
+      });
+    } else {
+      // 如果没有卡片，使用原来的日志方式
+      logMessage(
+        `${speaker.name}: ${response.dialogue}`,
+        "dialogue"
+      );
+    }
 
     // 更新历史记录
     set((state: any) => {
