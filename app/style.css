@@ -26,10 +26,6 @@ body {
   cursor: pointer;
   user-select: none;
 }
-.agent:hover {
-  transform: scale(1.1);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
-}
 .agent-avatar {
   font-size: 24px;
   border-radius: 50%;
