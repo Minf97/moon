@@ -1,9 +1,10 @@
 "use client";
 import AgentView from "@/components/AgentView";
 import LogPanel from "@/components/LogPanel";
+import WorldEventModal from "@/components/WorldEventModal";
 import { useAgentStore } from "@/store/agents";
 import { useConfigStore } from "@/store/config";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AgentInfoPanel } from "../components/AgentInfoPanel";
 import { useSyncStore } from "@/store/sync";
 
@@ -11,6 +12,7 @@ export default function Home() {
   const { agents, initAgents, cleanup } = useAgentStore();
   const { gameStart, startGame } = useConfigStore();
   const { startAutoFlush, stopAutoFlush } = useSyncStore();
+  const [isWorldEventModalOpen, setIsWorldEventModalOpen] = useState(false);
 
   useEffect(() => {
     initAgents();
@@ -40,7 +42,7 @@ export default function Home() {
             <button
               id="event-trigger-btn"
               className={`control-button ${gameStart ? "" : "hidden"}`}
-              // onClick={() => setWorldEvent(null)}
+              onClick={() => setIsWorldEventModalOpen(true)}
             >
               ✨ 触发世界事件
             </button>
@@ -67,6 +69,12 @@ export default function Home() {
 
       {/* Agent Details Sidebar */}
       <AgentInfoPanel />
+
+      {/* World Event Modal */}
+      <WorldEventModal 
+        isOpen={isWorldEventModalOpen} 
+        onClose={() => setIsWorldEventModalOpen(false)} 
+      />
     </div>
   );
 }
