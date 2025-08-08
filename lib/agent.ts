@@ -57,6 +57,7 @@ export function detectEncounter(agentA: Agent, agentB: Agent) {
   const lastCheckA = agentA.lastEncounterCheck[agentB.id] || 0;
   const lastCheckB = agentB.lastEncounterCheck[agentA.id] || 0;
 
+  // TODO: 这里 agents 只要不在 wandering 状态，就不会触发相遇
   if (
     now - lastCheckA > TALK_INITIATION_COOLDOWN &&
     now - lastCheckB > TALK_INITIATION_COOLDOWN
