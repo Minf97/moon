@@ -2,7 +2,9 @@
 
 
 export async function POST(req: Request) {
+  
   const { prompt } = await req.json();
+  
   const modelName = process.env.MODEL_NAME || "";
   const baseUrl = process.env.BASE_URL || "";
   const apiKey = process.env.API_KEY || "";
@@ -23,6 +25,7 @@ export async function POST(req: Request) {
     max_tokens: 4096,
   };
 
+  // 这里是每次的 AI 请求
   const response = await fetch(baseUrl, {
     method: "POST",
     headers: {
@@ -33,9 +36,6 @@ export async function POST(req: Request) {
   });
 
   const data = await response.json();
-
-  console.log(data, "response???");
-  
 
   return Response.json(data);
 }

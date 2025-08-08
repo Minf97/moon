@@ -4,8 +4,9 @@ import { useAgentStore } from "@/store/agents";
 import { useConfigStore } from "@/store/config";
 import { useDetailbarStore } from "@/store/detailbar";
 import { useSidebarLogStore } from "@/store/sidebarLog";
+import { useSyncStore } from "@/store/sync";
 import { ChatMessage } from "@/types/Chat";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function ChatTabHtml() {
   const { currentSelectedAgent } = useDetailbarStore();
@@ -17,10 +18,14 @@ export default function ChatTabHtml() {
   const { logMessage } = useSidebarLogStore();
   const { displayBubble } = useAgentStore();
   const { worldEvent } = useConfigStore();
+  const { queuePrivateMessage } = useSyncStore();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
+
+  // maintain a per-agent session id for idempotent private messages
+  const sessionId = useMemo(() => globalThis.crypto?.randomUUID?.() ?? `${id}-${Date.now()}`, [id]);
 
   useEffect(() => {}, []);
 
@@ -45,6 +50,14 @@ export default function ChatTabHtml() {
     setIsTyping(true);
     scrollToBottom();
 
+    // enqueue user message
+    queuePrivateMessage({
+      sessionId,
+      senderType: "user",
+      content: userMessage.message,
+      ts: userMessage.timestamp.getTime(),
+    });
+
     try {
       const response = await generateAgentResponse(input, {
         messages: [...messages, userMessage],
@@ -57,6 +70,15 @@ export default function ChatTabHtml() {
       setMessages((prev) => [...prev, agentMessage]);
       logMessage(`💬 [私聊] ${name}: "${response}"`, "dialogue");
       displayBubble(id, `💬 ${response}`);
+
+      // enqueue agent reply
+      queuePrivateMessage({
+        sessionId,
+        senderType: "agent",
+        senderAgentId: id,
+        content: agentMessage.message,
+        ts: agentMessage.timestamp.getTime(),
+      });
     } catch (e) {
       console.log(e, "e???");
 
@@ -70,6 +92,15 @@ export default function ChatTabHtml() {
         },
       ]);
       displayBubble(id, fallback);
+
+      // enqueue fallback
+      queuePrivateMessage({
+        sessionId,
+        senderType: "agent",
+        senderAgentId: id,
+        content: fallback,
+        ts: Date.now(),
+      });
     } finally {
       setIsTyping(false);
     }

@@ -1,5 +1,6 @@
 // 侧边栏的日志记录
 import { create } from "zustand";
+import { useSyncStore } from "./sync";
 
 export type LogItem = {
   message: string;
@@ -26,6 +27,7 @@ export type EncounterCard = {
 type LogStore = {
   logs: LogItem[];
   encounterCards: EncounterCard[];
+
   logMessage: (message: string, type?: LogItem["type"]) => void;
   createEncounterCard: (agentA: { id: string; name: string }, agentB: { id: string; name: string }) => string;
   addStepToCard: (cardId: string, step: EncounterCardStep) => void;
@@ -70,6 +72,16 @@ export const useSidebarLogStore = create<LogStore>((set, get) => ({
           : card
       )
     }));
+
+    // enqueue for DB sync
+    const { queueEncounterStep } = useSyncStore.getState();
+    queueEncounterStep({
+      cardId,
+      stepType: step.type,
+      agentName: step.agentName,
+      message: step.message,
+      ts: step.timestamp,
+    });
   },
 
   updateCardStatus: (cardId, status) => {

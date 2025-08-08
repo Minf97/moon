@@ -5,17 +5,21 @@ import { useAgentStore } from "@/store/agents";
 import { useConfigStore } from "@/store/config";
 import { useEffect } from "react";
 import { AgentInfoPanel } from "../components/AgentInfoPanel";
+import { useSyncStore } from "@/store/sync";
 
 export default function Home() {
   const { agents, initAgents, cleanup } = useAgentStore();
   const { gameStart, startGame } = useConfigStore();
+  const { startAutoFlush, stopAutoFlush } = useSyncStore();
 
   useEffect(() => {
     initAgents();
+    startAutoFlush();
 
     return () => {
       // 清除定时器
       cleanup();
+      stopAutoFlush();
     };
   }, []);
 

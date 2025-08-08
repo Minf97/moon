@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { useAgentStore } from "./agents";
 import { useSidebarLogStore } from "./sidebarLog";
 import { callMoonshot } from "@/lib/llm";
+import { useSyncStore } from "./sync";
 
 type ConversationStore = {
   conversations: Record<string, Conversation>;
@@ -35,6 +36,15 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
         },
       },
     }));
+
+    // enqueue conversation init for DB
+    const { queueConversationInit } = useSyncStore.getState();
+    queueConversationInit({
+      conversationId,
+      participantAgentIds: [agentA.id, agentB.id],
+      cardId,
+      createdAt: Date.now(),
+    });
 
     // 通过 agents store 正确设置状态
     const { agents } = useAgentStore.getState();
@@ -137,6 +147,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     const { conversations } = get();
     const { logMessage } = useSidebarLogStore.getState();
     const { generateDialogue, displayBubble } = useAgentStore.getState();
+    const { queueConversationMessage } = useSyncStore.getState();
     const conversation = conversations[conversationId];
     if (!conversation) return;
 
@@ -155,6 +166,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       get().endConversation(conversationId, `找不到发言者 (ID: ${conversation.turn})`);
       return;
     }
+    // TODO: 为什么会进这里
     if (speaker.state !== "talking") {
       console.error(`Speaker状态异常: ${speaker.name} (${speaker.id}) 状态为 ${speaker.state}，期望为 talking`);
       get().endConversation(conversationId, `${speaker.name} 状态异常 (${speaker.state})`);
@@ -204,6 +216,17 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       };
     });
 
+    // Enqueue message for DB
+    const turnIndex = (get().conversations[conversationId]?.turnCount ?? 1) - 1;
+    queueConversationMessage({
+      conversationId,
+      turnIndex,
+      senderAgentId: speaker.id,
+      senderType: "agent",
+      content: response.dialogue,
+      ts: Date.now(),
+    });
+
     const action = response.action.action;
 
     if (action === "continue_talking") {
@@ -234,6 +257,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   generateMemoryForAgents: async (agent1: Agent, agent2: Agent, history: any[]) => {
     const { logMessage } = useSidebarLogStore.getState();
     const { updateAgentMemory } = useAgentStore.getState();
+    const { queueAgentMemory } = useSyncStore.getState();
     
     try {
       // 构建对话历史文本
@@ -268,12 +292,26 @@ ${conversationText}
       // 更新第一个agent的记忆
       if (response1 && !response1.error && response1.memory) {
         updateAgentMemory(agent1.id, response1.memory);
+        queueAgentMemory({
+          agentId: agent1.id,
+          conversationId: get().conversations[agent1.conversationId!]?.id ?? undefined,
+          sourceType: "conversation",
+          content: response1.memory,
+          ts: Date.now(),
+        });
         logMessage(`💭 ${agent1.name} 生成了新记忆: ${response1.memory}`, "memory");
       }
 
       // 更新第二个agent的记忆
       if (response2 && !response2.error && response2.memory) {
         updateAgentMemory(agent2.id, response2.memory);
+        queueAgentMemory({
+          agentId: agent2.id,
+          conversationId: get().conversations[agent2.conversationId!]?.id ?? undefined,
+          sourceType: "conversation",
+          content: response2.memory,
+          ts: Date.now(),
+        });
         logMessage(`💭 ${agent2.name} 生成了新记忆: ${response2.memory}`, "memory");
       }
 

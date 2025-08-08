@@ -219,15 +219,12 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const { agents } = get();
     const { worldEvent } = useConfigStore.getState();
     const agent = agents.find((a) => a.id === conversation.turn);
-
-    if (!agent) return;
-
     const otherAgent = agents.find(
       (a) =>
-        a.id === conversation.participants.find((pId: any) => pId !== agent.id)
+        a.id === conversation.participants.find((pId: any) => pId !== agent?.id)
     );
-
-    if (!otherAgent) return;
+    
+    if (!agent || !otherAgent) return;
 
     const history = conversation.history
       .map((h) => `${h.name}: ${h.dialogue}`)
