@@ -45,6 +45,8 @@ ${eventContext}
  */
 export function detectEncounter(agentA: Agent, agentB: Agent) {
   const { logMessage } = useSidebarLogStore.getState();
+  // 只有 wandering 和 finding 状态的 agent 才能发生新的相遇
+  // thinking 和 talking 状态的 agent 不能与他人碰撞
   if (!["wandering", "finding"].includes(agentA.state)) return false;
   if (!["wandering", "finding"].includes(agentB.state)) return false;
 
@@ -62,10 +64,6 @@ export function detectEncounter(agentA: Agent, agentB: Agent) {
   ) {
     agentA.lastEncounterCheck[agentB.id] = now;
     agentB.lastEncounterCheck[agentA.id] = now;
-    logMessage(
-        `🤝 ${agentA.name} 和 ${agentB.name} 相遇了...`,
-        "system"
-    );
     return true;
   }
 

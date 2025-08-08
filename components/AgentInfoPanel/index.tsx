@@ -98,7 +98,7 @@ function InfoTabHtml() {
           {/* ${memoryHtml} */}
           {memory.length > 0 ? (
             memory.map((item, index) => (
-              <div id={`memory-${index}`} className="agent-memory-item">
+              <div key={index} id={`memory-${index}`} className="agent-memory-item">
                 {item}
               </div>
             ))

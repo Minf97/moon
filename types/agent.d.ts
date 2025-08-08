@@ -46,6 +46,7 @@ export type Conversation = {
   currentTurn: string; // agentId
   turnCount: number;
   turn: string;
+  cardId?: string; // 对应的相遇卡片ID
 };
 
 // 定义 store 的类型，用于类型推导
@@ -63,4 +64,5 @@ export type AgentStore = {
   setWandering: (agentId: string, reason: string) => void;
   setFinding: (agentId: string, targetId: string, reason: string) => void;
   displayBubble: (agentId: string, message: string) => void;
+  updateAgentMemory: (agentId: string, memory: string) => void;
 };

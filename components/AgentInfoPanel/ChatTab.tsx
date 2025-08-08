@@ -130,33 +130,35 @@ export default function ChatTabHtml() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-shrink-0 pb-3 border-b border-gray-200">
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* 聊天头部 */}
+      <div className="flex-shrink-0 p-3 border-b border-gray-200">
         <h3 className="font-semibold text-gray-800">与 {name} 聊天</h3>
         <p className="text-xs text-gray-500 mt-1">
           私人对话，不会影响Agent的记忆和行为
         </p>
       </div>
 
+      {/* 消息区域 */}
       <div
-        className="flex-grow overflow-y-auto py-4"
-        id="chat-messages"
-        style={{ maxHeight: "500px" }}
+        ref={messagesRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3"
+        style={{ minHeight: 0 }}
       >
         {/* 渲染消息列表 */}
         {messages.length > 0 ? (
           messages.map((message) => (
             <div
               key={message.timestamp.getTime()}
-              className={`mb-3 ${
-                message.sender === "user" ? "text-right" : "text-left"
+              className={`flex ${
+                message.sender === "user" ? "justify-end" : "justify-start"
               }`}
             >
               <div
-                className={`inline-block p-3 rounded-lg text-sm max-w-xs ${
+                className={`max-w-[280px] rounded-lg p-3 text-sm break-words ${
                   message.sender === "user"
-                    ? "bg-blue-500 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-800 shadow-sm border border-[#e5e7eb]"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-800 border border-gray-200"
                 }`}
               >
                 <div
@@ -168,30 +170,51 @@ export default function ChatTabHtml() {
                 >
                   {message.sender === "user" ? "你" : name}
                 </div>
-                <div>{message.message}</div>
-              </div>
-              <div
-                className={`text-xs text-gray-400 mt-1 ${
-                  message.sender === "user" ? "text-right" : "text-left"
-                }`}
-              >
-                {formatTime(message.timestamp)}
+                <div className="whitespace-pre-wrap">{message.message}</div>
+                <div
+                  className={`text-xs mt-1 ${
+                    message.sender === "user"
+                      ? "text-blue-100"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {formatTime(message.timestamp)}
+                </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-gray-500 text-sm text-center py-8">
-            开始与 {name} 对话吧！👋
+          <div className="flex items-center justify-center h-full">
+            <div className="text-gray-500 text-sm text-center">
+              开始与 {name} 对话吧！👋
+            </div>
+          </div>
+        )}
+        
+        {/* 正在输入指示器 */}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-gray-100 rounded-lg p-3 text-sm text-gray-600">
+              <div className="flex items-center space-x-1">
+                <span>{name} 正在输入</span>
+                <div className="flex space-x-1">
+                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="flex-shrink-0 pt-3 border-t border-gray-200">
-        <div className="flex gap-2 mb-2">
+      {/* 输入区域 - 固定在底部 */}
+      <div className="flex-shrink-0 p-3 border-t border-gray-200 bg-white">
+        <div className="flex gap-2 items-center">
           <textarea
             id="chat-input"
-            className="flex-1 p-2 border border-gray-300 rounded-lg text-sm resize-none"
-            rows={2}
+            className="flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-h-[40px] max-h-[80px]"
+            rows={1}
             placeholder="输入消息..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -201,21 +224,37 @@ export default function ChatTabHtml() {
                 sendMessage();
               }
             }}
-          ></textarea>
+            disabled={isTyping}
+            style={{ 
+              overflowX: 'hidden',
+              wordWrap: 'break-word',
+              whiteSpace: 'pre-wrap'
+            }}
+          />
           <button
             onClick={sendMessage}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+            disabled={!input.trim() || isTyping}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors flex-shrink-0 h-[40px] flex items-center justify-center"
           >
-            发送
+            {isTyping ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              "发送"
+            )}
           </button>
         </div>
-        <div className="flex gap-2">
+        
+        {/* 操作按钮 */}
+        <div className="flex justify-between items-center mt-2">
           <button
-            // onClick="agentChatManager.clearChat('${agent.id}')"
-            className="text-xs px-3 py-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+            onClick={() => setMessages([])}
+            className="text-xs px-2 py-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
           >
             清空聊天
           </button>
+          <div className="text-xs text-gray-400">
+            按 Enter 发送，Shift+Enter 换行
+          </div>
         </div>
       </div>
     </div>
