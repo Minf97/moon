@@ -251,6 +251,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     
     当前情景:
     大背景: ${eventContext}
+    ${worldEvent ? `\n⚠️ 重要：刚刚发生了世界事件！请在对话中自然地提到或回应这个事件: "${worldEvent.description}"` : ''}
+    
     你正在和 ${otherAgent.name} 对话。
     对话历史:
     ${history || "（这是对话的第一句话）"}
@@ -262,6 +264,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     - 聊聊市面上的应用、网站、硬件设备等
     - 交流创业想法和商业模式
     - 分享使用某些产品的体验和感受
+    ${worldEvent ? `- 讨论刚刚发生的世界事件对科技行业的影响` : ''}
     
     重要约束：
     - 保持话题现实可行，不要讨论科幻或不切实际的概念
@@ -269,6 +272,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     - 不要提及你无法实际执行的行动
     - 避免过于天马行空的想象，保持务实的态度
     - 可以有创意，但要基于现实的技术基础
+    ${worldEvent ? `- 如果合适，可以在对话中提到世界事件并分享你的看法` : ''}
 
     现在轮到你发言。请根据你的背景、记忆和当前对话，生成你的下一句话，并决定下一步行动。
     行动选项: "continue_talking", "leave_and_wander", "leave_and_find"。

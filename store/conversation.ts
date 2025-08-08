@@ -10,6 +10,7 @@ type ConversationStore = {
   endConversation: (conversationId: string, reason: string, speakerAction?: {action: string, target_name?: string}, speakerId?: string) => void;
   handleConversationTurn: (conversationId: string) => Promise<void>;
   generateMemoryForAgents: (agent1: Agent, agent2: Agent, history: any[]) => Promise<void>;
+  notifyWorldEvent: (worldEvent: any) => void;
 };
 
 export const useConversationStore = create<ConversationStore>((set, get) => ({
@@ -140,7 +141,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     const conversation = conversations[conversationId];
     if (!conversation) return;
 
-    const MAX_CONVERSATION_TURNS = 10;
+    const MAX_CONVERSATION_TURNS = 25;
 
     if (conversation.turnCount >= MAX_CONVERSATION_TURNS) {
       get().endConversation(conversationId, "对话达到最大轮次");
@@ -281,6 +282,40 @@ ${conversationText}
       console.error("生成记忆时出错:", error);
       logMessage(`❗️ 生成记忆失败: ${error}`, "system");
     }
+  },
+
+  /**
+   * 通知正在进行的对话有新的世界事件
+   */
+  notifyWorldEvent: (worldEvent: any) => {
+    const { conversations } = get();
+    const { logMessage, addStepToCard } = useSidebarLogStore.getState();
+    const { displayBubble } = useAgentStore.getState();
+
+    const ongoingConversations = Object.values(conversations);
+    
+    if (ongoingConversations.length === 0) {
+      logMessage("📢 世界事件已生效，将影响下次对话", "system");
+      return;
+    }
+
+    logMessage(`📢 向 ${ongoingConversations.length} 个正在进行的对话通知世界事件`, "system");
+
+    ongoingConversations.forEach((conversation) => {
+      // 为对话卡片添加世界事件通知
+      if (conversation.cardId) {
+        addStepToCard(conversation.cardId, {
+          type: "dialogue",
+          message: `⚡ 世界事件: ${worldEvent.description}`,
+          timestamp: Date.now()
+        });
+      }
+
+      // 为两个参与者显示事件提醒气泡
+      conversation.participants.forEach((participantId) => {
+        displayBubble(participantId, `⚡ ${worldEvent.description}`);
+      });
+    });
   },
 
   // 后续你可以扩展 addMessage, endConversation 等
